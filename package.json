@@ -1,21 +1,11 @@
 {
-  "name": "deployment-auto-approve",
+  "name": "auto-approve",
   "version": "1.0.0",
-  "description": "Auto approval of deployment reviews",
+  "description": "Auto approve of GitHub Actions",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ambilykk/deployment-auto-approve.git"
-  },
-  "author": "ambilykk",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/ambilykk/deployment-auto-approve/issues"
-  },
-  "homepage": "https://github.com/ambilykk/deployment-auto-approve#readme",
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^5.1.0"
