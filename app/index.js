@@ -8,8 +8,8 @@ async function run() {
     const environment = core.getInput('environment');
     console.log(`Executing auto-approve on ${environment} environment...`);
 
-    const github_octokit = github.getOctokit(GITHUB_TOKEN);
-    const GITHUB_TOKEN = core.getInput('GITHUB_TOKEN');
+    const token = core.getInput('pat_token');
+    const github_octokit = github.getOctokit(token);
 
     try {
         
