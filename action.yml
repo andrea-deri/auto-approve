@@ -1,0 +1,16 @@
+name: 'Auto Approve'
+description: 'Automatic approval of GitHub Actions'
+branding:
+  icon: 'check'
+  color: 'green'
+inputs:
+  GITHUB_TOKEN:
+    description: 'GitHub Bot Token'
+    required: true
+  environment:
+    type: environment
+    description: 'Environment'
+    required: true
+runs:
+  using: 'node16'
+  main: 'app/index.js'
