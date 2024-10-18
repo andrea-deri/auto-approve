@@ -69,8 +69,8 @@ async function run() {
 
         // if the environment passed was not found in the list of environment to pre-approve 
         if(!found_env) {
-            console.log(`ERROR: environment ${envIn} not found.`);
-            core.warning(`env '${envIn}' is not part of the workflow or deployment was already approved by one of the reviewers`);
+            console.log(`ERROR: environment ${environment} not found.`);
+            core.warning(`env '${environment}' is not part of the workflow or deployment was already approved by one of the reviewers`);
             return;
         }
 
