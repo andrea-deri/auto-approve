@@ -4,7 +4,7 @@ branding:
   icon: 'check'
   color: 'green'
 inputs:
-  GITHUB_TOKEN:
+  pat_token:
     description: 'GitHub Bot Token'
     required: true
   environment:
