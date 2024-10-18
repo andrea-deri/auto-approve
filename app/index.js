@@ -6,103 +6,94 @@ const github = require('@actions/github');
 async function run() {
 
     const environment = core.getInput('environment');
-    console.log(`Executing auto-approve on ${environment} environment...`);
-
     const token = core.getInput('pat_token');
     const github_octokit = github.getOctokit(token);
 
     try {
         
+        console.log(`Executing auto-approve. Environment: [${environment}].`);
         let pending_actions = await github_octokit.rest.actions.getPendingDeploymentsForRun({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             run_id: github.context.runId
         });
 
-        let env_id = [];
-        let env_name = '';
-        let reviewers = [];
+        let environment_ids = [];
+        let official_reviewers = [];
+
         let is_reviewer = false;
-        let found_env = false;
 
-        pending_actions.data.forEach(env => {
-            
-            if (env.environment.name.toLowerCase() == environment.toLowerCase()) {
-                
-                found_env = true;
-                env_id.push(env.environment.id);
-                env_name = env_name + env.environment.name + ',';
+        for (const pending_action of pending_actions.data) {
 
-                // check if the current user is a reviewer for the environment
-                env.reviewers.forEach(async reviewerObj => {
+            if (pending_action.environment.name.toLowerCase() == environment.toLowerCase()) {
+
+                environment_ids.push(pending_action.environment.id);
+
+                for (const action_reviewer of pending_action.reviewers) {
 
                     // If the reviewer is a User
-                    if (reviewerObj.type == 'User' && !is_reviewer) {
-                        reviewers.push(reviewerObj.reviewer.login);
-                        if (reviewerObj.reviewer.login == github.context.actor) {
+                    if (action_reviewer.type === 'User' && !is_reviewer) {
+                        official_reviewers.push(action_reviewer.reviewer.login);
+                        if (action_reviewer.reviewer.login === github.context.actor) {
                             is_reviewer = true;
                         }
                     }
 
                     // If the reviewer is a Team
-                    if (reviewerObj.type == 'Team' && !is_reviewer) {
+                    if (action_reviewer.type === 'Team' && !is_reviewer) {
 
-                        reviewers.push(reviewerObj.reviewer.name);
-                        await github_octokit.rest.teams.getMembershipForUserInOrg({
-                            org: github.context.repo.owner,
-                            team_slug: reviewerObj.reviewer.slug,
-                            username: github.context.actor
-                        }).then((response) => {
+                        official_reviewers.push(action_reviewer.reviewer.name);
+                        try {
                             
-                            console.log(` team membership checked for ${github.context.actor} in team ${reviewerObj.reviewer.slug}`);
-                            console.log(` response: ${response.status}`);
-                            if (response.status == 200) {
+                            const response = await github_octokit.rest.teams.getMembershipForUserInOrg({
+                                org: github.context.repo.owner,
+                                team_slug: action_reviewer.reviewer.slug,
+                                username: github.context.actor
+                            });
+
+                            console.log(`Team membership checked for requirer [${github.context.actor}] in team [${action_reviewer.reviewer.slug}]. Is reviewer? [${response.status === 200}]`);
+                            if (response.status === 200) {
                                 is_reviewer = true;
                             }
-                        }).catch((error) => {
-                            console.log(` team membership check failed for ${github.context.actor} in team ${reviewerObj.reviewer.name}`);
-                        });;
+                        } catch (error) {
+                            console.log(`Team membership check failed for requirer [${github.context.actor}] in team [${action_reviewer.reviewer.name}].`);
+                        }
                     }
-                });
+                }
             }
-        });
-
-        // if the environment passed was not found in the list of environment to pre-approve 
-        if(!found_env) {
-            console.log(`ERROR: environment ${environment} not found.`);
-            core.warning(`env '${environment}' is not part of the workflow or deployment was already approved by one of the reviewers`);
-            return;
         }
 
-        // if the current user is not a reviewer, display the list of reviewers and exit
-        if (!is_reviewer) {
-            console.log(`ERROR: ${github.context.actor} is not a reviewer in ${reviewers}`);         
-            core.notice('Auto Approval Not Possible; current user is not a reviewer for the environment(s) - ' + env_name.trimEnd(','));
-            core.info('Reviewers: ' + (reviewers.join(',')));
-            return;
+        // if is passed an invalid environment, no auto-approve can be executed
+        if(environment_ids.length == 0) {
+            core.warning(`Auto-approve not executed: no valid environment with name ${environment} exists in this repository.`);
+        } 
+
+        // if the user is not a reviewer or part of a reviewer team, no auto-approve can be executed
+        else if (!is_reviewer) {   
+            core.warning(`Auto-approve not executed: user [${github.context.actor}] is not a reviewer in [${official_reviewers.join(',')}] for environments [${environment_ids.join(',')}].`);
         } 
         
         else {
-            // Approve, in case of there is any pending review requests
-            if (typeof env_id !== 'undefined' && env_id.length > 0) {
-                // Approve the pending deployment reviews
+
+            // if there is at least one running GH Action that requires manual approval, then approve it! 
+            if (typeof environment_ids !== 'undefined' && environment_ids.length > 0) {
+
+                // approve the pending run
                 await github_octokit.rest.actions.reviewPendingDeploymentsForRun({
                     owner: github.context.repo.owner,
                     repo: github.context.repo.repo,
                     run_id: github.context.runId,
-                    environment_ids: env_id,
+                    environment_ids: environment_ids,
                     state: 'approved',
-                    comment: 'Auto-Approved by GitHub Action for environment(s) - ' + env_name.trimEnd(',') 
+                    comment: `GitHub Action execution automatically approved in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}].`
                 });
-                // Adding to deployment Summary
-                core.summary.addHeading(' :white_check_mark: Auto Approval Status');
-                core.summary.addQuote('Auto-Approved by GitHub Action. Reviewer: ' + github.context.actor);
+                core.summary.addHeading(':white_check_mark: Automatically approved!');
                 core.summary.write();
             }
         }
 
     } catch (error) {
-        console.log(error);
+        core.warning(`Auto-approve not executed. ${error}`);
     };
 }
 
