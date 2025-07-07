@@ -20,6 +20,7 @@ async function run() {
 
         let environment_ids = [];
         let official_reviewers = [];
+        let deployment_run_id = github.context.runId;
 
         let is_reviewer = false;
 
@@ -27,6 +28,7 @@ async function run() {
 
             if (pending_action.environment.name.toLowerCase() == environment.toLowerCase()) {
 
+                deployment_run_id = pending_action.run_id;
                 environment_ids.push(pending_action.environment.id);
 
                 for (const action_reviewer of pending_action.reviewers) {
@@ -79,12 +81,11 @@ async function run() {
             if (typeof environment_ids !== 'undefined' && environment_ids.length > 0) {
 
                 // approve the pending run
-                let run_id = pending_action.run_id;
                 console.log(`Trying to execute automatic approve for run [${run_id}] in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}]`);
                 await github_octokit.rest.actions.reviewPendingDeploymentsForRun({
                     owner: github.context.repo.owner,
                     repo: github.context.repo.repo,
-                    run_id: run_id, //github.context.runId,
+                    run_id: deployment_run_id,
                     environment_ids: environment_ids,
                     state: 'approved',
                     comment: `GitHub Action execution automatically approved in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}].`
