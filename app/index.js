@@ -81,7 +81,7 @@ async function run() {
             if (typeof environment_ids !== 'undefined' && environment_ids.length > 0) {
 
                 // approve the pending run
-                console.log(`Trying to execute automatic approve for run [${run_id}] in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}]`);
+                console.log(`Trying to execute automatic approve for run [${deployment_run_id}] in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}]`);
                 await github_octokit.rest.actions.reviewPendingDeploymentsForRun({
                     owner: github.context.repo.owner,
                     repo: github.context.repo.repo,
