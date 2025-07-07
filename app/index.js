@@ -4,10 +4,6 @@ const github = require('@actions/github');
 
 
 async function run() {
-
-    const delay = 10000;
-    console.log(`Waiting [${delay}] seconds before starting with run...`);
-    await new Promise(resolve => setTimeout(resolve, delay));
     
     const environment = core.getInput('environment');
     const token = core.getInput('pat_token');
@@ -26,15 +22,15 @@ async function run() {
         let official_reviewers = [];
 
         let is_reviewer = false;
-
-        console.log("Pending Deployments:");
-        console.log(JSON.stringify(pending_actions.data, null, 2));
+        let bot_can_autoapprove = false;
         
         for (const pending_action of pending_actions.data) {
 
             if (pending_action.environment.name.toLowerCase() == environment.toLowerCase()) {
 
                 environment_ids.push(pending_action.environment.id);
+
+                bot_can_autoapprove = pending_action.current_user_can_approve;
                                 
                 for (const action_reviewer of pending_action.reviewers) {
 
@@ -86,7 +82,7 @@ async function run() {
             if (typeof environment_ids !== 'undefined' && environment_ids.length > 0) {
 
                 // approve the pending run
-                console.log(`Trying to execute automatic approve for run [${github.context.runId}] in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}]`);
+                console.log(`Trying to execute automatic approve for run [${github.context.runId}] in environment [${environment_ids.join(',')}] for reviewer: [${github.context.actor}]. Is the PAT token issuer allowed to auto-approve? [${bot_can_autoapprove}]`);
                 await github_octokit.rest.actions.reviewPendingDeploymentsForRun({
                     owner: github.context.repo.owner,
                     repo: github.context.repo.repo,
