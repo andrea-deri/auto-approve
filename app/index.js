@@ -27,12 +27,15 @@ async function run() {
 
         let is_reviewer = false;
 
+        console.log("Pending Deployments:");
+        console.log(JSON.stringify(pending_actions.data, null, 2));
+        
         for (const pending_action of pending_actions.data) {
 
             if (pending_action.environment.name.toLowerCase() == environment.toLowerCase()) {
 
                 environment_ids.push(pending_action.environment.id);
-
+                                
                 for (const action_reviewer of pending_action.reviewers) {
 
                     // If the reviewer is a User
