@@ -5,6 +5,10 @@ const github = require('@actions/github');
 
 async function run() {
 
+    const delay = 10000;
+    console.log(`Waiting [${delay}] seconds before starting with run...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
     const environment = core.getInput('environment');
     const token = core.getInput('pat_token');
     const github_octokit = github.getOctokit(token);
